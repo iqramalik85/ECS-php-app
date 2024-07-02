@@ -12,16 +12,19 @@
     task_definition: null
   tasks:
     - name: Ensure python3-pip is installed
+      become: yes
       apt:
         name: python3-pip
         state: present
 
     - name: Ensure boto3 is installed
+      become: yes
       apt:
         name: python3-boto3
         state: present
 
     - name: Ensure botocore is installed
+      become: yes
       apt:
         name: python3-botocore
         state: present
