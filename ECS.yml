@@ -8,16 +8,8 @@
     ecs_task_definition_name: "ansible-task-definition"
     ecs_service_name: "php-ecs-service"
     ecs_container_name: "ansible_php"
-    ecs_container_image: "736116236436.dkr.ecr.us-east-1.amazonaws.com/php-app-img:latest"
-    ec2_instance_type: "t2.medium"  # Specify your desired instance type here
-    ec2_key_name: "test-1"  # Your EC2 key pair name
-    ec2_security_group: "sg-0a85d937517e6a7b1"  # Security group for EC2 instances
-    subnet_ids:
-      - "subnet-095be323bd97dc9a4"
-      - "subnet-0c8e1eaaaff0a0726"
-      - "subnet-0e3db30d9fdcb6414"
-      - "subnet-04b85618616f2da9d"
-      - "subnet-0925766f7ff391b44"
+    ecs_container_image: "736116236436.dkr.ecr.us-east-1.amazonaws.com/php-app-image:latest"
+    task_definition: null
   tasks:
     - name: Ensure python3-pip is installed
       become: yes
@@ -45,21 +37,57 @@
         AWS_DEFAULT_REGION: "{{ aws_region }}"
       ignore_errors: yes  # Ignore errors if the cluster already exists
 
-    - name: Launch EC2 instances for ECS Cluster
-      ec2:
-        key_name: "{{ ec2_key_name }}"
-        instance_type: "{{ ec2_instance_type }}"
-        image: "ami-0de53d8956e8dcf80"  # Amazon Linux 2 AMI (replace with your desired AMI ID)
-        wait: yes
-        count: 1  # Number of instances to launch
+    - name: Create ECS Task Definition
+      ecs_taskdefinition:
         region: "{{ aws_region }}"
-        vpc_subnet_id: "{{ subnet_ids | random }}"
-        group_id: "{{ ec2_security_group }}"
-        instance_tags:
-          Name: "ECS Instance"
-          Cluster: "{{ ecs_cluster_name }}"
-      register: ec2
+        family: "{{ ecs_task_definition_name }}"
+        network_mode: awsvpc
+        access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        execution_role_arn: "arn:aws:iam::736116236436:role/ecsTaskExecutionRole"
+        containers:
+          - name: "{{ ecs_container_name }}"
+            image: "{{ ecs_container_image }}"
+            portMappings:
+              - containerPort: 80
+                hostPort: 80  # If using awsvpc mode, hostPort should be omitted or set to the same as containerPort
+            memoryReservation: 512  # Increased memory reservation
+            memory: 1024  # Total memory for the container
+            cpu: 256  # Increased CPU allocation
+        requires_compatibilities: ["EC2"]  # Specify the launch type
+        state: present
+      register: task_definition
 
-    - name: Add instances to ECS Cluster
-      command: >
-        aws ecs register-container-instance
+    - name: Register ECS Task Definition
+      debug:
+        var: task_definition
+
+    - name: Create ECS Service
+      ecs_service:
+        region: "{{ aws_region }}"
+        cluster: "{{ ecs_cluster_name }}"
+        service: "{{ ecs_service_name }}"
+        task_definition: "{{ ecs_task_definition_name }}"
+        launch_type: EC2
+        desired_count: 1  # Set the desired count to 1 to start one task
+        wait: yes
+        deployment_configuration:
+          maximum_percent: 150
+          minimum_healthy_percent: 100
+        network_configuration:
+          awsvpc_configuration:
+            subnets:
+              - "subnet-095be323bd97dc9a4"
+              - "subnet-0c8e1eaaaff0a0726"
+              - "subnet-0e3db30d9fdcb6414"
+              - "subnet-04b85618616f2da9d"
+              - "subnet-0925766f7ff391b44"
+            security_groups:
+              - "sg-0a85d937517e6a7b1"
+            assign_public_ip: "ENABLED"  # Ensure this is set if your subnets require public IPs for outbound traffic
+        state: present
+      register: service_result
+
+    - name: Register ECS Service
+      debug:
+        var: service_result
