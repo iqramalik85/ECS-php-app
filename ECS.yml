@@ -8,7 +8,7 @@
     ecs_task_definition_name: "ansible-task-definition"
     ecs_service_name: "php-ecs-service"
     ecs_container_name: "ansible_php"
-    ecs_container_image: "736116236436.dkr.ecr.us-east-1.amazonaws.com/ecs2-img:latest"
+    ecs_container_image: "736116236436.dkr.ecr.us-east-1.amazonaws.com/php-app-img:latest"
     ec2_instance_type: "t2.medium"  # Specify your desired instance type here
     ec2_key_name: "test-1"  # Your EC2 key pair name
     ec2_security_group: "sg-0a85d937517e6a7b1"  # Security group for EC2 instances
