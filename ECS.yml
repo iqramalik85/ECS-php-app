@@ -4,9 +4,9 @@
   gather_facts: False
   vars:
     aws_region: "us-east-1"
-    ecs_cluster_name: "test-cluster2"
+    ecs_cluster_name: "php-app-ecs"
     ecs_task_definition_name: "ansible-task-definition"
-    ecs_service_name: "ansible-ecs-service"
+    ecs_service_name: "php-ecs-service"
     ecs_container_name: "ansible_php"
     ecs_container_image: "736116236436.dkr.ecr.us-east-1.amazonaws.com/ecs2-img:latest"
     task_definition: null
